@@ -23,9 +23,9 @@ const uint8_t  NO              = 0;
 const uint8_t  SI              = 1;
 const uint8_t  CASILLA_OCUPADA = 2;
 
-enum { NUMPOS=2 };
-const uint8_t posicionesF[NUMPOS] = {2,7};
-const uint8_t posicionesC[NUMPOS] = {3,7};
+enum { NUMPOS=17 };
+const uint8_t posicionesF[NUMPOS] = {4,5,6,2,3,3,3,5,1,3,3,0,2,7,7,0,2};
+const uint8_t posicionesC[NUMPOS] = {4,1,0,3,2,5,1,3,3,6,0,0,6,0,3,3,6};
 int iteration=0;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -91,7 +91,7 @@ void init_table(uint8_t tablero[][DIM], uint8_t candidatas[][DIM])
     for (i = 0; i < DIM; i++)
     {
         for (j = 0; j < DIM; j++)
-            tablero[i][j] = CASILLA_VACIA;
+            tablero[i][j] = CASILLA_VACIA;  candidatas[i][j] = NO;
     }
 #if 0
     for (i = 3; i < 5; ++i) {
@@ -206,8 +206,7 @@ int patron_volteo(uint8_t tablero[][DIM], int *longitud, uint8_t FA, uint8_t CA,
     {
         *longitud = *longitud + 1;
         patron = patron_volteo(tablero, longitud, FA, CA, SF, SC, color);
-        //printf("longitud: %d \n", *longitud);
-        //printf("fila: %d; columna: %d \n", FA, CA);
+
         return patron;
     }
     // si la ultima posición era válida y la ficha es del jugador actual,
@@ -248,7 +247,7 @@ void voltear(uint8_t tablero[][DIM], uint8_t FA, uint8_t CA, uint8_t SF, uint8_t
     }
 }
 
-void patron_volteo_test(uint8_t tablero[][DIM], int *longitud, uint8_t FA, uint8_t CA, uint8_t SF, uint8_t SC, uint8_t color)
+int patron_volteo_test(uint8_t tablero[][DIM], int *longitud, uint8_t FA, uint8_t CA, uint8_t SF, uint8_t SC, uint8_t color)
 {
 	int longitudAux=*longitud;
 	int longitudAux2=*longitud;
@@ -270,6 +269,7 @@ void patron_volteo_test(uint8_t tablero[][DIM], int *longitud, uint8_t FA, uint8
 	if(*longitud!=longitudAux2){
 		while(1);	//valor de longitud devuelto por patron_volteo_arm_arm no coincide
 	}
+	return encontrado;
 }
 
 
@@ -292,9 +292,8 @@ int actualizar_tablero(uint8_t tablero[][DIM], uint8_t f, uint8_t c, uint8_t col
         SC = vSC[i];
         // flip: numero de fichas a voltear
         flip = 0;
-        patron = patron_volteo(tablero, &flip, f, c, SF, SC, color);
-        patron_volteo_test(tablero, &flip, f, c, SF, SC, color);
-        //printf("Flip: %d \n", flip);
+        patron = patron_volteo_test(tablero, &flip, f, c, SF, SC, color);
+
         if (patron == PATRON_ENCONTRADO )
         {
             voltear(tablero, f, c, SF, SC, flip, color);
@@ -344,9 +343,9 @@ int elegir_mov(uint8_t candidatas[][DIM], uint8_t tablero[][DIM], uint8_t *f, ui
 
                         // nos dice qué hay que voltear en cada dirección
                         longitud = 0;
-                        patron = patron_volteo(tablero, &longitud, i, j, SF, SC, FICHA_BLANCA);
-                        patron_volteo_test(tablero, &longitud, i, j, SF, SC, FICHA_BLANCA);
-                        //  //printf("%d ", patron);
+                        patron = patron_volteo_test(tablero, &longitud, i, j, SF, SC, FICHA_BLANCA);
+
+
                         if (patron == PATRON_ENCONTRADO)
                         {
                             found = 1;
@@ -432,19 +431,97 @@ void actualizar_candidatas(uint8_t candidatas[][DIM], uint8_t f, uint8_t c)
 
 
 
-void partidas_test (uint8_t tablero[][DIM], uint8_t candidatas[][DIM])
+
+
+
+void verificarPartidasAuto(uint8_t tablero[][DIM], uint8_t candidatas[][DIM], int numeroDeMovimientos){
+	////////////////////////////////////////////////////////////////////
+	 // Tablero candidatas: se usa para no explorar todas las posiciones del tablero
+	// sólo se exploran las que están alrededor de las fichas colocadas
+	 ////////////////////////////////////////////////////////////////////
+
+	int done;     // la máquina ha conseguido mover o no
+	int move = 0; // el humano ha conseguido mover o no
+	int blancas, negras; // número de fichas de cada color
+	int fin = 0;  // fin vale 1 si el humano no ha podido mover
+				  // (ha introducido un valor de movimiento con algún 8)
+				  // y luego la máquina tampoco puede
+	uint8_t f, c;    // fila y columna elegidas por la máquina para su movimiento
+
+	// PROBAR MOVIMMIENTOS
+	while (fin == 0 && numeroDeMovimientos > 0)
+	{
+		move = 0;
+		fila=posicionesF[iteration];
+		columna=posicionesC[iteration];
+		iteration++;
+		ready=1;
+		esperar_mov(&ready);
+		// si la fila o columna son 8 asumimos que el jugador no puede mover
+		if (((fila) != DIM) && ((columna) != DIM))
+		{
+			tablero[fila][columna] = FICHA_NEGRA;
+			actualizar_tablero(tablero, fila, columna, FICHA_NEGRA);
+			actualizar_candidatas(candidatas, fila, columna);
+			move = 1;
+		}
+
+		// escribe el movimiento en las variables globales fila columna
+		done = elegir_mov(candidatas, tablero, &f, &c);
+		if (done == -1)
+		{
+			if (move == 0)
+				fin = 1;
+		}
+		else
+		{
+			tablero[f][c] = FICHA_BLANCA;
+			actualizar_tablero(tablero, f, c, FICHA_BLANCA);
+			actualizar_candidatas(candidatas, f, c);
+		}
+
+		numeroDeMovimientos--;
+	}
+	contar(tablero, &blancas, &negras);
+}
+
+
+
+
+
+
+void partidas_test ()
 {
+	uint8_t __attribute__ ((aligned (8))) candidatas[DIM][DIM] =
+		{
+			{NO,NO,NO,NO,NO,NO,NO,NO},
+			{NO,NO,NO,NO,NO,NO,NO,NO},
+			{NO,NO,NO,NO,NO,NO,NO,NO},
+			{NO,NO,NO,NO,NO,NO,NO,NO},
+			{NO,NO,NO,NO,NO,NO,NO,NO},
+			{NO,NO,NO,NO,NO,NO,NO,NO},
+			{NO,NO,NO,NO,NO,NO,NO,NO},
+			{NO,NO,NO,NO,NO,NO,NO,NO}
+		};
+
+
+
+/***********************************************************************************/
+
+
+
 	/*
 		VOLTEO DE COLUMNAS:
-		(IA no puede mover)
-		{ , , , , , , , },
-		{ , , ,█, , ,▒, },
-		{ , , ,▒, , ,▒, },
-		{ , , ,▒, , ,▒, },
-		{ , , ,▒, , ,▒, },
-		{ ,▒, , , , ,▒, },
-		{ ,█, , , , ,▒, },
-		{ , , , , , ,█, }
+
+		  0 1 2 3 4 5 6 7
+		0{ , , , , , , , },
+		1{ , , ,█, , ,▒, },
+		2{ , , ,▒, , ,▒, },
+		3{ , , ,▒, , ,▒, },
+		4{ , , ,▒, , ,▒, },
+		5{ ,▒, , , , ,▒, },
+		6{ ,█, , , , ,▒, },
+		7{ , , , , , ,█, }
 
 	*/
 
@@ -460,45 +537,21 @@ void partidas_test (uint8_t tablero[][DIM], uint8_t candidatas[][DIM])
 	tablero[6][1] = FICHA_BLANCA;	candidatas[6][1] = CASILLA_OCUPADA;
 	tablero[7][1] = FICHA_NEGRA;	candidatas[7][1] = CASILLA_OCUPADA;
 
-	tablero[7][1] = FICHA_NEGRA;	candidatas[1][3] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[2][3] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[3][3] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[4][3] = CASILLA_OCUPADA;
+	tablero[1][3] = FICHA_NEGRA;	candidatas[1][3] = CASILLA_OCUPADA;
+	tablero[2][3] = FICHA_BLANCA;	candidatas[2][3] = CASILLA_OCUPADA;
+	tablero[3][3] = FICHA_BLANCA;	candidatas[3][3] = CASILLA_OCUPADA;
+	tablero[4][3] = FICHA_BLANCA;	candidatas[4][3] = CASILLA_OCUPADA;
 
-	tablero[6][1] = FICHA_BLANCA;	candidatas[1][6] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[2][6] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[3][6] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[4][6] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[5][6] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[6][6] = CASILLA_OCUPADA;
-	tablero[7][1] = FICHA_NEGRA;	candidatas[7][6] = CASILLA_OCUPADA;
+	tablero[1][6] = FICHA_BLANCA;	candidatas[1][6] = CASILLA_OCUPADA;
+	tablero[2][6] = FICHA_BLANCA;	candidatas[2][6] = CASILLA_OCUPADA;
+	tablero[3][6] = FICHA_BLANCA;	candidatas[3][6] = CASILLA_OCUPADA;
+	tablero[4][6] = FICHA_BLANCA;	candidatas[4][6] = CASILLA_OCUPADA;
+	tablero[5][6] = FICHA_BLANCA;	candidatas[5][6] = CASILLA_OCUPADA;
+	tablero[6][6] = FICHA_BLANCA;	candidatas[6][6] = CASILLA_OCUPADA;
+	tablero[7][6] = FICHA_NEGRA;	candidatas[7][6] = CASILLA_OCUPADA;
 
 	// MOVIMIENTOS A COMPROBAR:
-
-
-
-	// COMPARACIÓN DE TABLERO:
-/*		{ , , , , , ,█, },
-		{ , , ,█, , ,█, },
-		{ , , ,█, , ,█, },
-		{ , , ,█, , ,█, },
-		{ ,█, ,█, , ,█, },
-		{ ,█, ,█, , ,█, },
-		{ ,█, , , , ,█, },
-		{ , , , , , ,█, }
-*/
-	uint8_t __attribute__ ((aligned (8))) tableroTestVC[DIM][DIM] = {
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA},
-			{CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA},
-			{CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA},
-			{CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA}
-		};
-
-
+	verificarPartidasAuto(tablero, candidatas, 3);
 
 
 /***********************************************************************************/
@@ -516,12 +569,11 @@ void partidas_test (uint8_t tablero[][DIM], uint8_t candidatas[][DIM])
 
 	*/
 	// CREACIÓN DEL TABLERO DE PRUEBAS:
-	int i, j;
 
 	for (i = 0; i < DIM; i++)
 	{
 		for (j = 0; j < DIM; j++)
-			tablero[i][j] = CASILLA_VACIA;
+			tablero[i][j] = CASILLA_VACIA; candidatas[i][j] = NO;
 	}
 
 	tablero[6][1] = FICHA_BLANCA;	candidatas[1][3] = CASILLA_OCUPADA;
@@ -542,26 +594,7 @@ void partidas_test (uint8_t tablero[][DIM], uint8_t candidatas[][DIM])
 
 	// MOVIMIENTOS A COMPROBAR:
 
-	// COMPARACIÓN DE TABLERO:
-/*		{ , , , , , , , },
-		{ , ,█,█,█, , , },
-		{ , , , , , , , },
-		{ , , , , , , , },
-		{ ,█,█,█,█,█,█, },
-		{ , , , , , , , },
-		{█,█,█,█,█,█,█,█},
-		{ , , , , , , , }
-*/
-	uint8_t __attribute__ ((aligned (8))) tableroTestVC[DIM][DIM] = {
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,FICHA_NEGRA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,FICHA_NEGRA,FICHA_NEGRA,FICHA_NEGRA,FICHA_NEGRA,FICHA_NEGRA,FICHA_NEGRA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{FICHA_NEGRA,FICHA_NEGRA,FICHA_NEGRA,FICHA_NEGRA,FICHA_NEGRA,FICHA_NEGRA,FICHA_NEGRA,FICHA_NEGRA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA}
-		};
+
 
 
 
@@ -580,12 +613,12 @@ void partidas_test (uint8_t tablero[][DIM], uint8_t candidatas[][DIM])
 
 	*/
 	// CREACIÓN DEL TABLERO DE PRUEBAS:
-	int i, j;
+
 
 	for (i = 0; i < DIM; i++)
 	{
 		for (j = 0; j < DIM; j++)
-			tablero[i][j] = CASILLA_VACIA;
+			tablero[i][j] = CASILLA_VACIA; candidatas[i][j] = NO;
 	}
 
 	tablero[1][1] = FICHA_BLANCA;	candidatas[1][1] = CASILLA_OCUPADA;
@@ -612,26 +645,7 @@ void partidas_test (uint8_t tablero[][DIM], uint8_t candidatas[][DIM])
 	// MOVIMIENTOS A COMPROBAR:
 
 
-	// COMPARACIÓN DE TABLERO:
-/*		{█, , , , , , ,█},
-		{ ,█, , , , ,█, },
-		{ , ,█, , ,█, , },
-		{ ,█, ,█,█, , ,█},
-		{█, , ,█,█, ,█, },
-		{ , ,█, , ,█, , },
-		{ ,█, , , , ,█, },
-		{█, , , , , , ,█}
-*/
-	uint8_t __attribute__ ((aligned (8))) tableroTestVC[DIM][DIM] = {
-			{FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA},
-			{CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,FICHA_NEGRA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA},
-			{FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,FICHA_NEGRA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA,CASILLA_VACIA},
-			{FICHA_NEGRA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,FICHA_NEGRA}
-		};
+
 
 /***********************************************************************************/
 	/*
@@ -647,6 +661,13 @@ void partidas_test (uint8_t tablero[][DIM], uint8_t candidatas[][DIM])
 
 	*/
 	// CREACIÓN DEL TABLERO DE PRUEBAS:
+
+	for (i = 0; i < DIM; i++)
+		{
+			for (j = 0; j < DIM; j++)
+				tablero[i][j] = CASILLA_VACIA; candidatas[i][j] = NO;
+		}
+
 	tablero[1][1] = FICHA_BLANCA;	candidatas[1][1] = CASILLA_OCUPADA;
 	tablero[2][2] = FICHA_BLANCA;	candidatas[2][2] = CASILLA_OCUPADA;
 	tablero[3][3] = FICHA_BLANCA;	candidatas[3][3] = CASILLA_OCUPADA;
@@ -678,107 +699,40 @@ void partidas_test (uint8_t tablero[][DIM], uint8_t candidatas[][DIM])
 
 	// MOVIMIENTOS A COMPROBAR:
 
-	// COMPARACIÓN DE TABLERO:
-/*		{ , , , , , , , },
-		{ , ,█,█,█, , , },
-		{ , , , , , , , },
-		{ , , , , , , , },
-		{ ,█,█,█,█,█,█, },
-		{ , , , , , , , },
-		{█,█,█,█,█,█,█,█},
-		{ , , , , , , , }
-*/
-	uint8_t __attribute__ ((aligned (8))) tableroTestVC[DIM][DIM] = {
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA}
-		};
 
-/***********************************************************************************/
+
 	/*
-			PARTIDA NORMAL (1):
-			{ , , , , , , , },
-			{ , , , , , , , },
-			{ , , , , , , , },
-			{ , , ,▒,█, , , },
-			{ , , ,█,▒, , , },
-			{ , , , , , , , },
-			{ , , , , , , , },
-			{ , , , , , , , }
+	VOLTEO TODOS:
+		{ ,█, , , ,█, , },
+		{ , ,▒, , ,▒, , },
+		{ , , ,▒, ,▒, ,█},
+		{ , , , ,▒,▒,▒, },
+		{█,▒,▒,▒,▒, ,▒,█},
+		{ , , , ,▒,▒,▒, },
+		{ , , ,▒, ,▒, ,█},
+		{ , ,█, , ,█, , }
 
 	*/
-	// CREACIÓN DEL TABLERO DE PRUEBAS
-	init_table(tablero, candidatas);
 
-	// MOVIMIENTOS A COMPROBAR:
-
-
-	// COMPARACIÓN DE TABLERO:
-/*		{ , , , , , , , },
-		{ , ,█,█,█, , , },
+//---------------------------------------------------------------------------------------------------------------------------//
+/*
+	PARTIDA NORMAL (1):
 		{ , , , , , , , },
 		{ , , , , , , , },
-		{ ,█,█,█,█,█,█, },
 		{ , , , , , , , },
-		{█,█,█,█,█,█,█,█},
+		{ , , ,▒,█, , , },
+		{ , , ,█,▒, , , },
+		{ , , , , , , , },
+		{ , , , , , , , },
 		{ , , , , , , , }
 */
-	uint8_t __attribute__ ((aligned (8))) tableroTestVC[DIM][DIM] = {
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA}
-		};
 
-
-/***********************************************************************************/
-	/*
-			PARTIDA NORMAL (2):
-			{ , , , , , , , },
-			{ , , , , , , , },
-			{ , , , , , , , },
-			{ , , ,▒,█, , , },
-			{ , , ,█,▒, , , },
-			{ , , , , , , , },
-			{ , , , , , , , },
-			{ , , , , , , , }
-
-	*/
-	// CREACIÓN DEL TABLERO DE PRUEBAS
 	init_table(tablero, candidatas);
 
-	// MOVIMIENTOS A COMPROBAR:
+// MOVIMIENTOS A COMPROBAR:
+	verificarPartidasAuto(tablero, candidatas, 14);
 
 
-	// COMPARACIÓN DE TABLERO:
-/*		{ , , , , , , , },
-		{ , ,█,█,█, , , },
-		{ , , , , , , , },
-		{ , , , , , , , },
-		{ ,█,█,█,█,█,█, },
-		{ , , , , , , , },
-		{█,█,█,█,█,█,█,█},
-		{ , , , , , , , }
-*/
-	uint8_t __attribute__ ((aligned (8))) tableroTestVC[DIM][DIM] = {
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA},
-			{CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA,CASILLA_VACIA}
-		};
 
 }
 
@@ -795,69 +749,5 @@ void partidas_test (uint8_t tablero[][DIM], uint8_t candidatas[][DIM])
 // Sólo que la máquina realice un movimiento correcto.
 void reversi8()
 {
-
-	 ////////////////////////////////////////////////////////////////////
-	 // Tablero candidatas: se usa para no explorar todas las posiciones del tablero
-	// sólo se exploran las que están alrededor de las fichas colocadas
-	 ////////////////////////////////////////////////////////////////////
-	uint8_t __attribute__ ((aligned (8))) candidatas[DIM][DIM] =
-    {
-        {NO,NO,NO,NO,NO,NO,NO,NO},
-        {NO,NO,NO,NO,NO,NO,NO,NO},
-        {NO,NO,NO,NO,NO,NO,NO,NO},
-        {NO,NO,NO,NO,NO,NO,NO,NO},
-        {NO,NO,NO,NO,NO,NO,NO,NO},
-        {NO,NO,NO,NO,NO,NO,NO,NO},
-        {NO,NO,NO,NO,NO,NO,NO,NO},
-        {NO,NO,NO,NO,NO,NO,NO,NO}
-    };
-
-
-    int done;     // la máquina ha conseguido mover o no
-    int move = 0; // el humano ha conseguido mover o no
-    int blancas, negras; // número de fichas de cada color
-    int fin = 0;  // fin vale 1 si el humano no ha podido mover
-                  // (ha introducido un valor de movimiento con algún 8)
-                  // y luego la máquina tampoco puede
-    uint8_t f, c;    // fila y columna elegidas por la máquina para su movimiento
-
-    init_table(tablero, candidatas);
-
-
-
-    while (fin == 0)
-    {
-        move = 0;
-        fila=posicionesF[iteration];
-        columna=posicionesC[iteration];
-        iteration++;
-        ready=1;
-        esperar_mov(&ready);
-        // si la fila o columna son 8 asumimos que el jugador no puede mover
-        if (((fila) != DIM) && ((columna) != DIM))
-        {
-            tablero[fila][columna] = FICHA_NEGRA;
-            actualizar_tablero(tablero, fila, columna, FICHA_NEGRA);
-            actualizar_candidatas(candidatas, fila, columna);
-            move = 1;
-        }
-
-        // escribe el movimiento en las variables globales fila columna
-        done = elegir_mov(candidatas, tablero, &f, &c);
-        if (done == -1)
-        {
-            if (move == 0)
-                fin = 1;
-        }
-        else
-        {
-            tablero[f][c] = FICHA_BLANCA;
-            actualizar_tablero(tablero, f, c, FICHA_BLANCA);
-            actualizar_candidatas(candidatas, f, c);
-        }
-        if(iteration==NUMPOS){
-        	fin=1;
-        }
-    }
-    contar(tablero, &blancas, &negras);
+	partidas_test();
 }
