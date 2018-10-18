@@ -23,9 +23,9 @@ const uint8_t  NO              = 0;
 const uint8_t  SI              = 1;
 const uint8_t  CASILLA_OCUPADA = 2;
 
-enum { NUMPOS=17 };
-const uint8_t posicionesF[NUMPOS] = {4,5,6,2,3,3,3,5,1,3,3,0,2,7,7,0,2};
-const uint8_t posicionesC[NUMPOS] = {4,1,0,3,2,5,1,3,3,6,0,0,6,0,3,3,6};
+enum { NUMPOS=26 };
+const uint8_t posicionesF[NUMPOS] = {4,5,0,1,4,6,0,7,4,6,0,4,2,3,3,3,5,1,3,3,0,2,7,7,0,2};
+const uint8_t posicionesC[NUMPOS] = {1,3,6,2,6,0,0,0,0,7,0,5,3,2,5,1,3,3,6,0,0,6,0,3,3,6};
 int iteration=0;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -486,10 +486,6 @@ void verificarPartidasAuto(uint8_t tablero[][DIM], uint8_t candidatas[][DIM], in
 }
 
 
-
-
-
-
 void partidas_test ()
 {
 	uint8_t __attribute__ ((aligned (8))) candidatas[DIM][DIM] =
@@ -504,12 +500,7 @@ void partidas_test ()
 			{NO,NO,NO,NO,NO,NO,NO,NO}
 		};
 
-
-
 /***********************************************************************************/
-
-
-
 	/*
 		VOLTEO DE COLUMNAS:
 
@@ -531,11 +522,11 @@ void partidas_test ()
 	for (i = 0; i < DIM; i++)
 	{
 		for (j = 0; j < DIM; j++)
-			tablero[i][j] = CASILLA_VACIA;
+			tablero[i][j] = CASILLA_VACIA;	candidatas[i][j] = SI;
 	}
 
-	tablero[6][1] = FICHA_BLANCA;	candidatas[6][1] = CASILLA_OCUPADA;
-	tablero[7][1] = FICHA_NEGRA;	candidatas[7][1] = CASILLA_OCUPADA;
+	tablero[5][1] = FICHA_BLANCA;	candidatas[6][1] = CASILLA_OCUPADA;
+	tablero[6][1] = FICHA_NEGRA;	candidatas[7][1] = CASILLA_OCUPADA;
 
 	tablero[1][3] = FICHA_NEGRA;	candidatas[1][3] = CASILLA_OCUPADA;
 	tablero[2][3] = FICHA_BLANCA;	candidatas[2][3] = CASILLA_OCUPADA;
@@ -558,6 +549,7 @@ void partidas_test ()
 	/*
 		VOLTEO DE FILAS:
 		(IA no puede mover)
+		 0 1 2 3 4 5 6 7
 		{ , , , , , , , },
 		{ , , ,▒,█, , , },
 		{ , , , , , , , },
@@ -573,27 +565,27 @@ void partidas_test ()
 	for (i = 0; i < DIM; i++)
 	{
 		for (j = 0; j < DIM; j++)
-			tablero[i][j] = CASILLA_VACIA; candidatas[i][j] = NO;
+			tablero[i][j] = CASILLA_VACIA; candidatas[i][j] = SI;
 	}
 
-	tablero[6][1] = FICHA_BLANCA;	candidatas[1][3] = CASILLA_OCUPADA;
-	tablero[7][1] = FICHA_NEGRA;	candidatas[1][4] = CASILLA_OCUPADA;
+	tablero[1][3] = FICHA_BLANCA;	candidatas[1][3] = CASILLA_OCUPADA;
+	tablero[1][4] = FICHA_NEGRA;	candidatas[1][4] = CASILLA_OCUPADA;
 
-	tablero[7][1] = FICHA_NEGRA;	candidatas[5][4] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[5][5] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[5][6] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[5][7] = CASILLA_OCUPADA;
+	tablero[5][4] = FICHA_NEGRA;	candidatas[5][4] = CASILLA_OCUPADA;
+	tablero[5][5] = FICHA_BLANCA;	candidatas[5][5] = CASILLA_OCUPADA;
+	tablero[5][6] = FICHA_BLANCA;	candidatas[5][6] = CASILLA_OCUPADA;
+	tablero[5][7] = FICHA_BLANCA;	candidatas[5][7] = CASILLA_OCUPADA;
 
-	tablero[6][1] = FICHA_BLANCA;	candidatas[7][1] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[7][2] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[7][3] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[7][4] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[7][5] = CASILLA_OCUPADA;
-	tablero[6][1] = FICHA_BLANCA;	candidatas[7][6] = CASILLA_OCUPADA;
-	tablero[7][1] = FICHA_NEGRA;	candidatas[7][7] = CASILLA_OCUPADA;
+	tablero[7][1] = FICHA_BLANCA;	candidatas[7][1] = CASILLA_OCUPADA;
+	tablero[7][2] = FICHA_BLANCA;	candidatas[7][2] = CASILLA_OCUPADA;
+	tablero[7][3] = FICHA_BLANCA;	candidatas[7][3] = CASILLA_OCUPADA;
+	tablero[7][4] = FICHA_BLANCA;	candidatas[7][4] = CASILLA_OCUPADA;
+	tablero[7][5] = FICHA_BLANCA;	candidatas[7][5] = CASILLA_OCUPADA;
+	tablero[7][6] = FICHA_BLANCA;	candidatas[7][6] = CASILLA_OCUPADA;
+	tablero[7][7] = FICHA_NEGRA;	candidatas[7][7] = CASILLA_OCUPADA;
 
 	// MOVIMIENTOS A COMPROBAR:
-
+	verificarPartidasAuto(tablero, candidatas, 3);
 
 
 
@@ -643,7 +635,7 @@ void partidas_test ()
 
 
 	// MOVIMIENTOS A COMPROBAR:
-
+	verificarPartidasAuto(tablero, candidatas, 3);
 
 
 
@@ -665,7 +657,7 @@ void partidas_test ()
 	for (i = 0; i < DIM; i++)
 		{
 			for (j = 0; j < DIM; j++)
-				tablero[i][j] = CASILLA_VACIA; candidatas[i][j] = NO;
+				tablero[i][j] = CASILLA_VACIA; candidatas[i][j] = SI;
 		}
 
 	tablero[1][1] = FICHA_BLANCA;	candidatas[1][1] = CASILLA_OCUPADA;
@@ -698,7 +690,7 @@ void partidas_test ()
 	tablero[7][3] = FICHA_NEGRA;	candidatas[7][7] = CASILLA_OCUPADA;
 
 	// MOVIMIENTOS A COMPROBAR:
-
+	verificarPartidasAuto(tablero, candidatas, 1);
 
 
 	/*
@@ -713,6 +705,45 @@ void partidas_test ()
 		{ , ,█, , ,█, , }
 
 	*/
+	// CREACIÓN DEL TABLERO DE PRUEBAS:
+
+		for (i = 0; i < DIM; i++)
+			{
+				for (j = 0; j < DIM; j++)
+					tablero[i][j] = CASILLA_VACIA; candidatas[i][j] = SI;
+			}
+
+		tablero[4][0] = FICHA_NEGRA;	candidatas[4][0] = CASILLA_OCUPADA;
+		tablero[4][1] = FICHA_BLANCA;	candidatas[4][1] = CASILLA_OCUPADA;
+		tablero[4][2] = FICHA_BLANCA;	candidatas[4][2] = CASILLA_OCUPADA;
+		tablero[4][3] = FICHA_BLANCA;	candidatas[4][3] = CASILLA_OCUPADA;
+		tablero[4][4] = FICHA_BLANCA;	candidatas[4][4] = CASILLA_OCUPADA;
+		tablero[4][6] = FICHA_BLANCA;	candidatas[4][6] = CASILLA_OCUPADA;
+		tablero[4][7] = FICHA_NEGRA;	candidatas[4][7] = CASILLA_OCUPADA;
+
+		tablero[0][5] = FICHA_NEGRA;	candidatas[0][5] = CASILLA_OCUPADA;
+		tablero[1][5] = FICHA_BLANCA;	candidatas[1][5] = CASILLA_OCUPADA;
+		tablero[2][5] = FICHA_BLANCA;	candidatas[2][5] = CASILLA_OCUPADA;
+		tablero[3][5] = FICHA_BLANCA;	candidatas[3][5] = CASILLA_OCUPADA;
+		tablero[5][5] = FICHA_BLANCA;	candidatas[5][5] = CASILLA_OCUPADA;
+		tablero[6][5] = FICHA_BLANCA;	candidatas[6][5] = CASILLA_OCUPADA;
+		tablero[7][5] = FICHA_NEGRA;	candidatas[7][5] = CASILLA_OCUPADA;
+
+		tablero[0][1] = FICHA_NEGRA;	candidatas[0][1] = CASILLA_OCUPADA;
+		tablero[1][2] = FICHA_BLANCA;	candidatas[1][2] = CASILLA_OCUPADA;
+		tablero[2][3] = FICHA_BLANCA;	candidatas[2][3] = CASILLA_OCUPADA;
+		tablero[3][4] = FICHA_BLANCA;	candidatas[3][4] = CASILLA_OCUPADA;
+		tablero[5][6] = FICHA_BLANCA;	candidatas[5][6] = CASILLA_OCUPADA;
+		tablero[6][7] = FICHA_NEGRA;	candidatas[6][7] = CASILLA_OCUPADA;
+
+		tablero[7][2] = FICHA_NEGRA;	candidatas[7][2] = CASILLA_OCUPADA;
+		tablero[6][3] = FICHA_BLANCA;	candidatas[6][3] = CASILLA_OCUPADA;
+		tablero[5][4] = FICHA_BLANCA;	candidatas[5][4] = CASILLA_OCUPADA;
+		tablero[3][6] = FICHA_BLANCA;	candidatas[3][6] = CASILLA_OCUPADA;
+		tablero[2][7] = FICHA_NEGRA;	candidatas[2][7] = CASILLA_OCUPADA;
+
+	// MOVIMIENTOS A COMPROBAR:
+		verificarPartidasAuto(tablero, candidatas, 1);
 
 //---------------------------------------------------------------------------------------------------------------------------//
 /*
@@ -738,16 +769,12 @@ void partidas_test ()
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Proceso principal del juego
-// Utiliza el tablero,
-// y las direcciones en las que indica el jugador la fila y la columna
-// y la señal de ready que indica que se han actualizado fila y columna
-// tablero, fila, columna y ready son variables globales aunque deberían ser locales de reversi8,
-// la razón es que al meterlas en la pila no las pone juntas, y así jugar es más complicado.
-// en esta versión el humano lleva negras y la máquina blancas
-// no se comprueba que el humano mueva correctamente.
-// Sólo que la máquina realice un movimiento correcto.
+// Proyecto para el testeo de las funciones:
+// 		parton_volteo
+// 		parton_volteo_arm_c
+// 		parton_volteo_arm_arm
 void reversi8()
 {
+	int prueba = tablero;
 	partidas_test();
 }
